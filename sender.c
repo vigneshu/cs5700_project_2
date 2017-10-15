@@ -1,4 +1,4 @@
-#define PORT 27993
+
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
@@ -9,36 +9,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#define MAX_BUFFER 256
-#define CHUNK_SIZE 2
-
-typedef struct file_ack_packet {
-	int seqno;
-
-}file_ack_packet_t;
-
-typedef struct file_packet {
-	uint16_t chksum; 
-	uint16_t len;
-	uint32_t seqno;
-	char data[CHUNK_SIZE]; 
-}file_packet_t;
+#include "packet_headers.h"
 
 
-typedef struct initial_ack_packet {
-	 int magic_number; //senderId
-	int file_len;
-
-}initial_ack_packet_t;
-
-uint8_t chksum8(char buff[], size_t len)
-{
-    unsigned int sum;       // nothing gained in using smaller types!
-    for ( sum = 0 ; len != 0 ; len-- )
-        sum += *(buff++);   // parenthesis not required!
-    return (uint8_t)sum;
-}
-
+char fileName[50];
 unsigned char * serialize_int(unsigned char *buffer, int value)
 {
   /* Write big-endian int value into buffer; assumes 32-bit int and 8-bit char. */
@@ -91,7 +65,6 @@ int send_file_chunk(int fd, char buffer[], int size, int seqno) {
 }
 
 int send_ack(int fd) {
-	char *fileName = "a.txt";
 	FILE * fp = fopen(fileName, "r");
 	if (fp == NULL) {
 			perror("Server- File NOT FOUND 404");
@@ -165,8 +138,9 @@ int connect_server(char *host_name, int port) {
 }
 
 
-int start_file_share(int fd) {
-	char *fileName = "a.txt";
+int start_file_share_go_back_n(int fd) {
+}
+int start_file_share_stop_and_wait(int fd) {
 	FILE* fp = fopen(fileName, "rb");
 	if (fp == NULL) {
 		perror("Sender- File NOT FOUND 404");
@@ -203,17 +177,11 @@ int start_file_share(int fd) {
 
 				continue;
 			}
-	    // process bytesRead worth of data in buffer
-	    
 		}
-
-
 	} while (bytesRead > 0);
 
-	
 	fclose (fp);
-
-return size;	
+	return size;	
 }
 // Sends hello message to sever, starting the communication
 int start_communication(int fd) {
@@ -229,11 +197,11 @@ int start_communication(int fd) {
 		if (s.seqno == 0){
 			return 1;
 		}
+		return 0;
 	}
 	else{
 		return 0;
 	}
-
 	return 1;
 	
 }
@@ -241,21 +209,50 @@ int start_communication(int fd) {
 
 int main(int argc, char* argv[]) {
 
-	int port = PORT;
+	int port = PORT, mode = 1, c;
 	char hostname[50];
-	char NUID[20];
-	 if (argc != 2) {
-    	printf("please follow the format : %s [hostname]\n", argv[1]);
-    	exit(1);
-  	}
-	memcpy(hostname, argv[1], strlen(argv[1]));
-	hostname[strlen(argv[1])] = '\0'; 
- 	printf("hostname: %s\n", hostname);
+
+
+	while ((c = getopt (argc, argv, "m:p:h:f:")) != -1){
+		switch (c){
+		  case 'm':
+		  	mode = atoi(optarg);
+		    break;
+		  case 'p':	  
+		    port = atoi(optarg);
+		    break;
+		  case 'h':
+			memcpy(hostname, optarg, strlen(optarg));
+			hostname[strlen(optarg)] = '\0';
+		    break;	 
+   		  case 'f':
+			memcpy(fileName, optarg, strlen(optarg));
+			fileName[strlen(fileName)] = '\0';
+		    break;	   
+		  case '?':
+		      printf (stderr,
+		               "Unknown option character `\\x%x'.\n",
+		               optopt);
+		    return 1;
+		  default:
+		    abort ();
+		}		
+	}
+	printf("port %d\nmode %d\nhostname %sfileName %s\n",port, mode, hostname, fileName);
+	if(mode < 1){
+		printf("mode should be greater than 1\n");
+		exit(1);
+	}	
 
  	int fd = connect_server(hostname, port);
  	int success = start_communication(fd);
  	if(success){
- 		start_file_share(fd);
+ 		if(mode == 1){
+ 			start_file_share_stop_and_wait(fd);
+ 		}
+ 		else{
+			start_file_share_go_back_n(fd);
+ 		}
  	}
  	close(fd);
  	return 0;

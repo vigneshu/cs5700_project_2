@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "packet_headers.h"
-
+#include <pthread.h>
 static volatile int signal_flag = 1;
  int mode = 1;
 int sockfd;
@@ -23,17 +23,56 @@ void intHandler(int dummy) {
     exit(1);
 }
 
+//sends acknowledgement asking for sequence number specified
+int send_acknowledgement(int clientfd, int seqno) {
+	char ackData[8];
+	file_ack_packet_t file_ack;
+	file_ack.seqno = seqno;
+	;
+	if (send(clientfd, &file_ack, sizeof(file_ack_packet_t), 0)== -1){
+		perror("send acknowledgement failed\n");
+		exit(0);
+		return 0;
+	}
+	return 1;
+}
 
 
 char* build_file_go_back_n(int clientfd, char* file){
+	char buffer[MAX_BUFFER];
+	int seqno = 0;
+	while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
+		print_message(buffer, sizeof(file_packet_t));
+		file_packet_t f;
+		memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
+		int chksum = f.chksum;
+		if(seqno == f.seqno){
+			strncat (file, f.data, f.len);			
+			seqno++;
+			printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
+			int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);
+		}
+		else{
+			printf("go_back_n Droppping packet got seq no %d expected %d \n", f.seqno,seqno);	
+		}
+		uint8_t calculated = chksum8(f.data, f.len);
+		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
+		if(calculated != chksum)
+		{
+			// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+			printf("go_back_n chksums dont match  \n");
+			return NULL;
+		}			
+	}
+	return file;
 }
 char* build_file_stop_and_wait(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
 	int seqno = 0;
 	while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
-		printf("before\n");
+		printf("stop_and_wait before\n");
 		print_message(buffer, sizeof(file_packet_t));
-		printf("after\n");
+		printf("stop_and_wait after\n");
 		file_packet_t f;
 		// int magic_number = ntohl(s->magic_number);
 		// int file_len = ntohl(s->file_len);
@@ -45,15 +84,15 @@ char* build_file_stop_and_wait(int clientfd, char* file){
 			int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);
 		}
 		else{
-			printf("Droppping packet got seq no %d before %s \n", seqno,f.data);	
+			printf("stop_and_wait Droppping packet got seq no %d before %s \n", seqno,f.data);	
 		}
 		
 		uint8_t calculated = chksum8(f.data, f.len);
-		printf("chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
+		printf("stop_and_wait chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
 		if(calculated != chksum)
 		{
 			// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
-			printf("chksums dont match  \n");
+			printf("stop_and_wait chksums dont match  \n");
 			return NULL;
 		}	
 	}
@@ -71,6 +110,7 @@ int validate_hello_message(char buffer[]){
 	memcpy(&s, buffer, sizeof(initial_ack_packet_t)); // "Deserialize"	
 	int magic_number = s.magic_number;
 	int file_len = s.file_len;
+		printf("s.file_name %s",s.file_name);
 	memcpy(file_name, s.file_name, strlen(s.file_name));
 	if(mode !=  s.mode){
 		printf("mode of sender doesnt match receiver");
@@ -80,17 +120,6 @@ int validate_hello_message(char buffer[]){
 	return file_len;
 }
 
-//sends acknowledgement asking for sequence number specified
-int send_acknowledgement(int clientfd, int seqno) {
-	char ackData[8];
-	file_ack_packet_t file_ack;
-	file_ack.seqno = seqno;
-	;
-	if (send(clientfd, &file_ack, sizeof(file_ack_packet_t), 0)== -1){
-		return 0;
-	}
-	return 1;
-}
 
 int start_listening(int port) {
 	struct sockaddr_in self;
@@ -137,7 +166,7 @@ int main(int argc, char* argv[])
 	while ((c = getopt (argc, argv, "m:p:h:")) != -1){
 		switch (c){
 		  case 'm':
-		  	mode = atoi(optarg);
+		  	//mode = atoi(optarg);
 		    break;
 		  case 'p':	  
 		    port = atoi(optarg);

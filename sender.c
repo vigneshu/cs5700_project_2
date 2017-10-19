@@ -280,6 +280,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 		
 		while(seqno < sm){
 			bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
+			file_chunk[bytesRead] = '\0';
 			// printf("go_back_n Read %d bytes from file, content is: %s, seqno : %d, i: %d, sm: %d\n  ",bytesRead, file_chunk,seqno, i , sm);
 			if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 				seqno++;
@@ -324,6 +325,7 @@ int start_file_share_stop_and_wait(int fd) {
 	{
 		fseek( fp, CHUNK_SIZE * seqno, SEEK_SET );
 		bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
+		file_chunk[bytesRead] = '\0';
 		printf("stop_and_wait Read %d bytes from file, content is: %s\n  ",bytesRead, file_chunk);
 		if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 			char buffer[MAX_BUFFER];

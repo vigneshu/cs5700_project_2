@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 	while ((c = getopt (argc, argv, "m:p:h:")) != -1){
 		switch (c){
 		  case 'm':
-		  	//mode = atoi(optarg);
+		  	mode = atoi(optarg);
 		    break;
 		  case 'p':	  
 		    port = atoi(optarg);

@@ -3,7 +3,9 @@
 
 #define MAX_BUFFER 256
 #define CHUNK_SIZE 2
-#define PORT 27993
+#define PORT 15125
+#define TIMEOUT_SECS 1
+#include <pthread.h>
 typedef struct file_ack_packet {
 	int seqno;
 
@@ -20,7 +22,7 @@ typedef struct file_packet {
 typedef struct initial_ack_packet {
 	 int magic_number; //senderId
 	int file_len;
-	char* file_name;
+	char file_name[30];
 	int mode;
 
 }initial_ack_packet_t;
@@ -33,6 +35,21 @@ uint8_t chksum8(char buff[], size_t len)
     return (uint8_t)sum;
 }
 // }
+
+typedef struct {
+    pthread_mutex_t input_lock;
+    pthread_cond_t input_cond;
+    size_t n_bytes;
+    int fd;
+    int window_size;
+    int sm;
+    int n;
+    int sb;
+    int packet_to_send;
+    int transfer_complete;
+    int total_packets;
+    int timeout;
+} pthread_data_t;
 
 void print_message(const char* buf, int buf_len)
 {

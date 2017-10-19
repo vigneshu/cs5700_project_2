@@ -2,9 +2,9 @@ default: all
 
 all: sender.o receiver.o
 sender.o:
-	gcc -o sender sender.c
+	gcc  -pthread  -o sender  sender.c -lm
 receiver.o:
-	gcc -o receiver receiver.c
+	gcc -pthread -o receiver receiver.c
 
 clean:
 	rm -rf *.o

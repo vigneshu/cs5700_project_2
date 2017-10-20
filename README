@@ -1,43 +1,15 @@
-Token received for my NUID (001627557)
-a74fbf9ba528f728745764b3ceba96a6b08258cf24d03049262ee940dc98a099
+./receiver -m 5 -h localhost
+
+./sender -m 5 -h localhost -f "a.txt"
 
 
-Client
-
-Approach
-> First, we need to make a connection to the server. This is implemented in connect_server. The function takes in the hostname to get the IP and then connects to it using the port provided
-> Next, The client forms the HELLO message and sends it to the server. This is implemented in start_communication. The server sends back messages which is parsed in the parse_msg function 
-> The parse_msg funcion parses the math equation and sends back the result to server 
-
-
-Problems
-I did not have any major problems. My client kept disonnecting while sending the HELLO message because I did not include the '\n' at the end in the HELLO message. This took a while to fix
-
-Testing
-I printed the messasge received from server and validated that message my function sends back is the sum of numbers received from server. After I got the secret flag I was convinced the program works as expected
-./client cs5700f17.ccs.neu.edu 001627557
-
-
-Server (Extra credit)
-I have implemented the first part of the extra credit. The server takes  NUID and lets one  client to connect to it.
+start -m 5 -h localhost -f "a.txt"
+start -m 5 -h localhost
 
 
 
-Approach
-> Server opens socket and listens at a port. Once a connection is accepted it waits for the first message. 
-> The first message is validated against HELLO message.
-> A random number is generated and thtis number is the number of math equations the server is going to send to client.
-> A random equation is constructes and sent to the client 
-> Server Waits for message from client after sending each equation. It then validates the solution and chooses whether to disconnect.
-> Finally, after all equations are sent, the server looks up if the NUID matches the NUID used whren launching the server to return the secret flag
 
-Testing
-I launched the server with command,
-./client -p 27890  localhost 001627557
 
- ./server -p 27890 localhost 001627557 secret_key
-
-Since my client was already tested against the main server, I used my client code to s=test the server and see if the client receives the secret flag
 
 
 

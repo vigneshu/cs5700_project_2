@@ -13,9 +13,12 @@
 #include <signal.h>
 #include "packet_headers.h"
 #include <pthread.h>
+#include <math.h>
 static volatile int signal_flag = 1;
  int mode = 1;
 int sockfd;
+ struct sockaddr_in clientaddr;
+ int clientlen,packets;
 char hostname[50], NUID[20], flag[50], file_name[30];
 void intHandler(int dummy) {
     signal_flag = 0;
@@ -28,8 +31,10 @@ int send_acknowledgement(int clientfd, int seqno) {
 	char ackData[8];
 	file_ack_packet_t file_ack;
 	file_ack.seqno = seqno;
-	;
-	if (send(clientfd, &file_ack, sizeof(file_ack_packet_t), 0)== -1){
+	
+if 	( sendto(clientfd, &file_ack, sizeof(file_ack_packet_t), 0, 
+	       (struct sockaddr *) &clientaddr, clientlen) == -1) {
+	// if (send(clientfd, &file_ack, sizeof(file_ack_packet_t), 0)== -1){
 		perror("send acknowledgement failed\n");
 		exit(0);
 		return 0;
@@ -41,10 +46,11 @@ int send_acknowledgement(int clientfd, int seqno) {
 char* build_file_go_back_n(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
 	int seqno = 0;
-	while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
-		// print_message(buffer, sizeof(file_packet_t));
-		file_packet_t f;
-		memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
+	
+	file_packet_t f;
+	// while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
+	while(recvfrom(clientfd, &f, sizeof(file_packet_t), 0, (struct sockaddr *) &clientaddr, &clientlen) > 0){
+		// memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
 
 		if(seqno == f.seqno){
 			// int chksum = f.chksum;
@@ -61,6 +67,7 @@ char* build_file_go_back_n(int clientfd, char* file){
 			strncat (file, f.data, f.len);			
 				seqno++;
 
+
 		}
 		else{
 			// printf("go_back_n Droppping packet got seq no %d expected %d end \n", f.seqno,seqno);	
@@ -69,30 +76,36 @@ char* build_file_go_back_n(int clientfd, char* file){
 		uint8_t calculated = chksum8(f.data, f.len);			
 		if(calculated != chksum)
 		{
-			// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
-			// printf("go_back_n chksums dont match  \n");
+			printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+			printf("go_back_n chksums dont match  \n");
 						return NULL;
 		}	
 	
 		
-		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
+		printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
 	
-		// printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
+		printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
 		int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
+		if(seqno >= packets){
+			printf("download complete\n");
+			break;
+		}
 	}
 	return file;
 }
 char* build_file_stop_and_wait(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
 	int seqno = 0;
-	while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
+	file_packet_t f;
+	while(recvfrom(clientfd, &f, sizeof(file_packet_t), 0, (struct sockaddr *) &clientaddr, &clientlen) > 0){
+	// while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
 		// printf("stop_and_wait before\n");
 		// print_message(buffer, sizeof(file_packet_t));
 		// printf("stop_and_wait after\n");
-		file_packet_t f;
+		
 		// int magic_number = ntohl(s->magic_number);
 		// int file_len = ntohl(s->file_len);
-		memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"	
+		// memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"	
 		if(seqno == f.seqno){
 			int chksum = f.chksum;
 			uint8_t calculated = chksum8(f.data, f.len);			
@@ -111,6 +124,10 @@ char* build_file_stop_and_wait(int clientfd, char* file){
 		else{
 			// printf("stop_and_wait Droppping packet got seq no %d before %d \n", seqno,f.seqno);	
 		}
+		if(seqno >= packets){
+			printf("download complete\n");
+			break;
+		}
 
 	}
 	return file;
@@ -118,10 +135,10 @@ char* build_file_stop_and_wait(int clientfd, char* file){
     
 }
 // validates the first message received from client to see if it is a hwllo message
-int validate_hello_message(char buffer[]){
-	initial_ack_packet_t s;
+int validate_hello_message(initial_ack_packet_t s){
+	// initial_ack_packet_t s;
 	
-	memcpy(&s, buffer, sizeof(initial_ack_packet_t)); // "Deserialize"	
+	// memcpy(&s, buffer, sizeof(initial_ack_packet_t)); // "Deserialize"	
 	int magic_number = s.magic_number;
 	int file_len = s.file_len;
 		// printf("s.file_name %s",s.file_name);
@@ -136,32 +153,32 @@ int validate_hello_message(char buffer[]){
 
 
 int create_socket(int port) {
-	struct sockaddr_in self;
+	struct sockaddr_in serveraddr;
 	// char buffer[MAX_BUFFER];
 	srand(time(NULL));
-    // if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
-    if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
+    // if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
 	{
 		perror("Socket");
 		exit(errno);
 	}
 
-	bzero(&self, sizeof(self));
-	self.sin_family = AF_INET;
-	self.sin_port = htons(port);
-	self.sin_addr.s_addr = INADDR_ANY;
+	bzero(&serveraddr, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_port = htons(port);
+	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);   
 
-    if ( bind(sockfd, (struct sockaddr*)&self, sizeof(self)) != 0 )
+    if ( bind(sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr)) != 0 )
 	{
 		perror("socket--bind");
 		exit(errno);
 	}
 
-	if ( listen(sockfd, 20) != 0 )
-	{
-		perror("socket--listen");
-		exit(errno);
-	}
+	// if ( listen(sockfd, 20) != 0 )
+	// {
+	// 	perror("socket--listen");
+	// 	exit(errno);
+	// }
 
 	return sockfd;
 
@@ -169,8 +186,9 @@ int create_socket(int port) {
 int start_listening(int sockfd) {
 	struct sockaddr_in client_addr;
 	int addrlen=sizeof(client_addr);
-	int clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
-	return clientfd;
+	// int clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
+	// return clientfd;
+	return sockfd;
 }
 int main(int argc, char* argv[])
 {   
@@ -180,7 +198,7 @@ int main(int argc, char* argv[])
 	char buffer[MAX_BUFFER];
 	// printf("receiver\n");
 	opterr = 0;
-
+	clientlen = sizeof(clientaddr);
 
 	while ((c = getopt (argc, argv, "m:p:h:")) != -1){
 		switch (c){
@@ -223,17 +241,23 @@ int main(int argc, char* argv[])
 	sockfd = create_socket(port);
     while(1){
 		clientfd = start_listening(sockfd);
+		initial_ack_packet_t s;
+		int data_size = recvfrom(sockfd, &s, sizeof(initial_ack_packet_t), 0, (struct sockaddr *) &clientaddr, &clientlen);
 
-		int data_size = recv(clientfd, buffer, MAX_BUFFER, 0);	
+
+		// int data_size = recv(clientfd, buffer, MAX_BUFFER, 0);	
 		 if (errno == EWOULDBLOCK) {
 		 	errno = 0;
 		 	continue;
 		 }
+		 if(data_size>-1){
 		// printf("message received %s \n",buffer);
-		file_len = validate_hello_message(buffer);
-		if(file_len != -1){
-			break;
-		}		
+			file_len = validate_hello_message(s);
+			packets = ceil(file_len/CHUNK_SIZE) + 1;
+			if(file_len != -1){
+				break;
+			}		
+		}
 	}
 
 

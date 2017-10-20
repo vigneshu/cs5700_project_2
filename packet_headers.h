@@ -2,7 +2,7 @@
 #define PACKETHEADERS_H
 
 #define MAX_BUFFER 256
-#define CHUNK_SIZE 50
+#define CHUNK_SIZE 150
 #define PORT 15125
 #define TIMEOUT_SECS 1
 #define TIMEOUT_U_SECS 500000

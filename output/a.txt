@@ -1,0 +1,595 @@
+./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost./sender -m 1  -h localhost -f "a.txt"
+
+./receiver -m 1  -h localhost
+
+
+start -m 1  -h localhost -f "a.txt"
+start -m 1  -h localhost
+
+start -m 2  -h localhost -f "a.txt"
+start -m 2  -h localhost
+
+
+
+
+./sender -m 1  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 1  -h localhost
+
+./sender -m 2  -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 2  -h localhost

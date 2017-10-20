@@ -37,24 +37,6 @@ unsigned char * serialize_temp(unsigned char *buffer, struct initial_ack_packet 
   return buffer;
 }
 
-// void ALARMhandler(int sig)
-// {
-//   signal(SIGALRM, SIG_IGN);           ignore this signal       
-//   printf("Hello\n");
-//   signal(SIGALRM, ALARMhandler);     /* reinstall the handler    */
-// }
-
-// int send_temp(int fd, const struct initial_ack_packet *temp)
-// {
-//   unsigned char buffer[32], *ptr;
-// //  data = (unsigned char*)malloc(sizeof(regn));
-//   // ptr = serialize_temp(buffer, temp);
-//   htonl(1000);
-
-//   return send(fd, ptr - buffer, sizeof(struct initial_ack_packet), 0);
-//   // return sendto(socket, buffer, ptr - buffer, 0, dest, dlen) == ptr - buffer;
-// }
-
 int send_file_chunk(int fd, char buffer[], int size, int seqno) {
 	file_packet_t pac;
 	// pac.data = buffer;
@@ -73,7 +55,7 @@ int send_file_chunk(int fd, char buffer[], int size, int seqno) {
 }
 
 int send_hello_msg(int fd, int mode) {
-	FILE * fp = fopen(fileName, "r");
+	FILE * fp = fopen(fileName, "rb");
 	if (fp == NULL) {
 			perror("Server- File NOT FOUND 404");
 			return 0;
@@ -92,12 +74,11 @@ int send_hello_msg(int fd, int mode) {
 	char *data = (char*) malloc (sizeof(initial_ack_packet_t));
 	memcpy((void*)data, (void*)&ack, sizeof(initial_ack_packet_t)); // "Serialize"
 
-	printf("ack mode %d ack\n", ack.mode);
 	// if (send(fd, &data, sizeof(data), 0) == -1) {
 	// if(send(fd, "hello", strlen("hello"), 0)){
 	if (send(fd, &ack, sizeof(initial_ack_packet_t), 0) == -1) {
 	// if (send_temp(fd, initial_ack_packet) == -1) {
-	  perror("ACK start communiocation  Error");
+	 perror("ACK start communiocation  Error");
 	 return 0 ;
 	}
 	return 1;
@@ -110,9 +91,11 @@ int connect_server(char *host_name, int port) {
 	struct sockaddr_in addr;
 	int fd;
 	fd = socket(AF_INET, SOCK_STREAM, 0);//TCP/IP network and TCP protocol.
+	// fd = socket(AF_INET, SOCK_DGRAM, 0);//UDP
     struct timeval timeout;      
-    timeout.tv_sec = TIMEOUT_SECS;
-    timeout.tv_usec = 0;
+    timeout.tv_sec = 0;
+    // timeout.tv_sec = TIMEOUT_SECS;
+    timeout.tv_usec = TIMEOUT_U_SECS;
 
     if (setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
                 sizeof(timeout)) < 0)
@@ -141,68 +124,19 @@ int connect_server(char *host_name, int port) {
 }
 
 
-
-// void * send_chunk_go_back_n(void *t_data)
-// { 
-//     pthread_data_t *d = (pthread_data_t *)t_data;
-//     int fd = d->fd;
-//     int window_size = d->window_size;
-//     size_t local_byte_count = 0;
-//     do {
-//         pthread_mutex_lock(&d->input_lock);
-//         local_byte_count = fread(d->in_buf, sizeof(unsigned char),
-//                 BUF_LENGTH_VALUE, stdin);
-
-//         d->n_bytes += local_byte_count;
-//         if (d->n_bytes > 0) { 
-//             fprintf(stdout, "PRODUCER ...signaling consumer...\n");
-//             pthread_cond_signal(&d->input_cond);
-//             fprintf(stdout, "PRODUCER ...consumer signaled...\n");
-//         }
-//         pthread_mutex_unlock(&d->input_lock);
-
-//         // This is added to slow down the producer so that we can observe
-//         // multiple consumptions.
-//         sleep(1);
-//     } while (local_byte_count >  0);
-
-
-
-//     return NULL;
-// }
-
-// void * wait_ack_go_back_n(void *t_data) 
-// {
-//     pthread_data_t *d = (pthread_data_t *)t_data;
-//     int fd = d->fd;
-//     int window_size = d->window_size;    
-//     while (1) {
-//         pthread_mutex_lock(&d->input_lock);
-//         while (d->n_bytes == 0) {
-//             fprintf(stdout, "CONSUMER entering wait \n");
-//             pthread_cond_wait(&d->input_cond, &d->input_lock);
-//         }
-//         fprintf(stdout, "CONSUMER ...consuming chunk...\n");
-//         d->n_bytes = 0;
-//         fprintf(stdout, "CONSUMER ...chunk consumed...\n");
-//         pthread_mutex_unlock(&d->input_lock);
-//         fflush(stdout);
-//     }
-
-// }
-
 void * wait_ack_go_back_n(void *t_data) 
 {
 
 	pthread_data_t *thread_data = (pthread_data_t*) t_data;
 	char buffer[MAX_BUFFER];
 	int fd = thread_data->fd;
+
 	while(thread_data->transfer_complete == 0){
 		int data_size = recv(fd, buffer, MAX_BUFFER, 0);
-		printf("buffer %s\n",buffer);
 		 if (errno == EWOULDBLOCK) {
-		 	printf("timeout wait_ack_go_back_n \n");
+		 	// printf("timeout wait_ack_go_back_n \n");
 		 	thread_data->timeout = 1;
+		 	errno = 0;
 		 	continue;
 		 }
 		if(thread_data->fd == 0){
@@ -214,9 +148,8 @@ void * wait_ack_go_back_n(void *t_data)
 		// }		 
 		file_ack_packet_t s;
 		memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
-		printf("go_back_n seq number requested is  %d thread_data->total_packets %d : \n", s.seqno,thread_data->total_packets);	
 		if(s.seqno >= thread_data->total_packets){
-			printf("Completed\n");
+			printf("Completed transfer of file\n");
 			thread_data->transfer_complete = 1;
 			break;
 		}	
@@ -224,7 +157,7 @@ void * wait_ack_go_back_n(void *t_data)
 		if(s.seqno > thread_data->sb){
 			thread_data->sm = (thread_data->sm - thread_data->sb) + s.seqno;
 			thread_data->sb = s.seqno;
-			printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
+			// printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
 		}
 	}
 }
@@ -261,7 +194,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	thread_data->n_bytes = 0;
 	thread_data->n = window_size;
 	thread_data->sb = 0;
-	printf("len of file: %d \n", size);
+	// printf("len of file: %d \n", size);
 	thread_data->total_packets = ceil(size/CHUNK_SIZE);
 	thread_data->sm = n;
 	thread_data->packet_to_send = 0;
@@ -290,7 +223,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 		while(thread_data->sm == sm ){
 			// printf("waiting for timeout or window move\n");
 			if(thread_data->timeout){
-				printf("timeout sending again \n");
+				// printf("timeout sending again \n");
 				seqno = thread_data->sb;
 				thread_data->timeout = 0;
 				break;
@@ -326,23 +259,22 @@ int start_file_share_stop_and_wait(int fd) {
 		fseek( fp, CHUNK_SIZE * seqno, SEEK_SET );
 		bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
 		file_chunk[bytesRead] = '\0';
-		printf("stop_and_wait Read %d bytes from file, content is: %s\n  ",bytesRead, file_chunk);
 		if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 			char buffer[MAX_BUFFER];
 			//todo timeout
 			int data_size = recv(fd, buffer, MAX_BUFFER, 0);
 			 if (errno == EWOULDBLOCK) {
-			 	printf("timeout sending again \n");
+			 	errno = 0;
 			 	continue;
 			 }
 			file_ack_packet_t s;
 			memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
 			if (s.seqno == seqno + 1){//receiver received last packet
-				printf("Receiver received packet %d and is requesting next one \n",seqno);
+				// printf("Receiver received packet %d and is requesting next one \n",seqno);
 				seqno++;
 			}
 			else{
-				printf("Sending again. Receiver requesting seq number %d \n",s.seqno);
+				// printf("Sending again. Receiver requesting seq number %d \n",s.seqno);
 				seqno = s.seqno;
 
 				continue;
@@ -360,9 +292,7 @@ int start_communication(int fd, int mode) {
 		char buffer[MAX_BUFFER];
 		int data_size = recv(fd, buffer, MAX_BUFFER, 0);
 		file_ack_packet_t s;
-		printf("sender received from receiver %s \n", buffer);
 		memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
-		printf("seq number requested is  %d \n", s.seqno);
 		
 		if (s.seqno == 0){
 			return 1;
@@ -408,8 +338,7 @@ int main(int argc, char* argv[]) {
 		    abort ();
 		}		
 	}
-	memcpy(fileName, "a.txt", strlen("a.txt"));
-	printf("port %d\nmode %d\nhostname %sfileName %s\n",port, mode, hostname, fileName);
+	// printf("port %d\nmode %d\nhostname %sfileName %s\n",port, mode, hostname, fileName);
 	if(mode < 1){
 		printf("mode should be greater than 1\n");
 		exit(1);
@@ -418,6 +347,7 @@ int main(int argc, char* argv[]) {
  	int fd = connect_server(hostname, port);
  	int success = start_communication(fd, mode);
  	if(success){
+ 		printf("Please wait. Sending file...\n");
  		if(mode == 1){
  			start_file_share_stop_and_wait(fd);
  		}

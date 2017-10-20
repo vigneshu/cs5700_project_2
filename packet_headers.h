@@ -2,12 +2,14 @@
 #define PACKETHEADERS_H
 
 #define MAX_BUFFER 256
-#define CHUNK_SIZE 2
+#define CHUNK_SIZE 10
 #define PORT 15125
 #define TIMEOUT_SECS 1
+#define TIMEOUT_U_SECS 500
+#define TIMEOUT_U_SECS_L 100
 #include <pthread.h>
 typedef struct file_ack_packet {
-	int seqno;
+	uint16_t seqno;
 
 }file_ack_packet_t;
 
@@ -21,9 +23,9 @@ typedef struct file_packet {
 
 typedef struct initial_ack_packet {
 	 int magic_number; //senderId
-	int file_len;
+	uint16_t file_len;
 	char file_name[30];
-	int mode;
+	uint8_t mode;
 
 }initial_ack_packet_t;
 

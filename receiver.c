@@ -42,27 +42,43 @@ char* build_file_go_back_n(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
 	int seqno = 0;
 	while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
-		print_message(buffer, sizeof(file_packet_t));
+		// print_message(buffer, sizeof(file_packet_t));
 		file_packet_t f;
 		memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
-		int chksum = f.chksum;
+
 		if(seqno == f.seqno){
+			// int chksum = f.chksum;
+			// uint8_t calculated = chksum8(f.data, f.len);			
+			// if(calculated != chksum)
+			// {
+			// 	// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+			// 	printf("go_back_n chksums dont match  \n");
+			// }	
+			// else{	
+			// 	strncat (file, f.data, f.len);			
+			// 	seqno++;
+			// }
 			strncat (file, f.data, f.len);			
-			seqno++;
-			printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
-			int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);
+				seqno++;
+
 		}
 		else{
-			printf("go_back_n Droppping packet got seq no %d expected %d \n", f.seqno,seqno);	
+			// printf("go_back_n Droppping packet got seq no %d expected %d end \n", f.seqno,seqno);	
 		}
-		uint8_t calculated = chksum8(f.data, f.len);
-		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
+		int chksum = f.chksum;
+		uint8_t calculated = chksum8(f.data, f.len);			
 		if(calculated != chksum)
 		{
 			// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
-			printf("go_back_n chksums dont match  \n");
-			return NULL;
-		}			
+			// printf("go_back_n chksums dont match  \n");
+						return NULL;
+		}	
+	
+		
+		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
+	
+		// printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
+		int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
 	}
 	return file;
 }
@@ -70,31 +86,32 @@ char* build_file_stop_and_wait(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
 	int seqno = 0;
 	while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
-		printf("stop_and_wait before\n");
-		print_message(buffer, sizeof(file_packet_t));
-		printf("stop_and_wait after\n");
+		// printf("stop_and_wait before\n");
+		// print_message(buffer, sizeof(file_packet_t));
+		// printf("stop_and_wait after\n");
 		file_packet_t f;
 		// int magic_number = ntohl(s->magic_number);
 		// int file_len = ntohl(s->file_len);
-		memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
-		int chksum = f.chksum;
+		memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"	
 		if(seqno == f.seqno){
-			strncat (file, f.data, f.len);			
-			seqno++;
-			int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);
+			int chksum = f.chksum;
+			uint8_t calculated = chksum8(f.data, f.len);			
+			if(calculated != chksum)
+			{
+				// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+				// printf("go_back_n chksums dont match  \n");
+			}			
+			else{
+				strncat (file, f.data, f.len);			
+				seqno++;
+				int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);			
+			}
+
 		}
 		else{
-			printf("stop_and_wait Droppping packet got seq no %d before %s \n", seqno,f.data);	
+			// printf("stop_and_wait Droppping packet got seq no %d before %d \n", seqno,f.seqno);	
 		}
-		
-		uint8_t calculated = chksum8(f.data, f.len);
-		printf("stop_and_wait chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
-		if(calculated != chksum)
-		{
-			// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
-			printf("stop_and_wait chksums dont match  \n");
-			return NULL;
-		}	
+
 	}
 	return file;
 
@@ -102,29 +119,27 @@ char* build_file_stop_and_wait(int clientfd, char* file){
 }
 // validates the first message received from client to see if it is a hwllo message
 int validate_hello_message(char buffer[]){
-	// initial_ack_packet_t *s = (initial_ack_packet_t *)buffer;
 	initial_ack_packet_t s;
-	// int magic_number = ntohl(s->magic_number);
-	// int file_len = ntohl(s->file_len);
 	
 	memcpy(&s, buffer, sizeof(initial_ack_packet_t)); // "Deserialize"	
 	int magic_number = s.magic_number;
 	int file_len = s.file_len;
-		printf("s.file_name %s",s.file_name);
+		// printf("s.file_name %s",s.file_name);
 	memcpy(file_name, s.file_name, strlen(s.file_name));
 	if(mode !=  s.mode){
 		printf("mode of sender doesnt match receiver");
 		return -1;
 	}
-	printf("magic number : %d, len: %d file_name: %sfileName", magic_number, file_len, file_name);
+	// printf("magic number : %d, len: %d file_name: %sfileName", magic_number, file_len, file_name);
 	return file_len;
 }
 
 
-int start_listening(int port) {
+int create_socket(int port) {
 	struct sockaddr_in self;
 	// char buffer[MAX_BUFFER];
-	srand(time(NULL));  
+	srand(time(NULL));
+    // if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
     if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
 	{
 		perror("Socket");
@@ -147,9 +162,13 @@ int start_listening(int port) {
 		perror("socket--listen");
 		exit(errno);
 	}
+
+	return sockfd;
+
+}
+int start_listening(int sockfd) {
 	struct sockaddr_in client_addr;
 	int addrlen=sizeof(client_addr);
-
 	int clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &addrlen);
 	return clientfd;
 }
@@ -159,7 +178,7 @@ int main(int argc, char* argv[])
 	int index;
 	int c;
 	char buffer[MAX_BUFFER];
-	printf("receiver\n");
+	// printf("receiver\n");
 	opterr = 0;
 
 
@@ -191,7 +210,7 @@ int main(int argc, char* argv[])
 	for (index = optind; index < argc; index++)
 		printf ("Non-option argument % index: %d\n", argv[index],index);
 
-	printf("port %d\nmode %d\nhostname %s\n",port, mode, hostname);
+	// printf("port %d\nmode %d\nhostname %s\n",port, mode, hostname);
 	
 	if(mode < 1){
 		printf("mode should be greater than 1\n");
@@ -200,25 +219,44 @@ int main(int argc, char* argv[])
 	srand(time(NULL));  
     signal(SIGINT, intHandler);
 	int clientfd;
-	clientfd = start_listening(port);
-	int data_size = recv(clientfd, buffer, MAX_BUFFER, 0);	
-	printf("message received %s \n",buffer);
-	int file_len = validate_hello_message(buffer);
+	int file_len;
+	sockfd = create_socket(port);
+    while(1){
+		clientfd = start_listening(sockfd);
+
+		int data_size = recv(clientfd, buffer, MAX_BUFFER, 0);	
+		 if (errno == EWOULDBLOCK) {
+		 	errno = 0;
+		 	continue;
+		 }
+		// printf("message received %s \n",buffer);
+		file_len = validate_hello_message(buffer);
+		if(file_len != -1){
+			break;
+		}		
+	}
+
 
 	if(file_len){
 		if(send_acknowledgement(clientfd, 0)){
 			char* file = (char*) malloc(file_len);
+			printf("Please wait. File downloading...\n");
 			if(mode == 1){
 				build_file_stop_and_wait(clientfd, file);
 			}
 			else{
 				build_file_go_back_n(clientfd, file);
 			}
-			printf("final file %s ", file);
-			char* opFileName = strcat(strtok(file_name, "."), "_output.txt");
-			printf("output file name %s ", opFileName);
-			FILE* fp1 = fopen(opFileName,  "w");
+			char folder[100] = "./output/";
+			// char* opFileName = strcat("./output/", file_name);
+			char* opFileName = strcat(folder, file_name);
+			// char* opFileName = "./output/a.txt";
+			// char* opFileName = strcat(strtok(file_name, "."), "_output.txt");
+			// printf("output file name ");
+			// printf("\noutput file name %s\n ", opFileName);
+			FILE* fp1 = fopen(opFileName,  "wb");
 			fprintf(fp1, "%s", file);
+			printf("File download complete... The file should be available under the output folder\n");
 		}
 	}
 	else{

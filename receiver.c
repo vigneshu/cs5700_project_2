@@ -88,9 +88,7 @@ char* build_file_go_back_n(int clientfd, char* file){
 		// printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
 		int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
 		if(seqno >= packets){
-			printf("download complete seqno%d: packets:%d\n", seqno
-
-				,packets);
+			// printf("download complete seqno%d: packets:%d\n", seqno,packets);
 			break;
 		}
 	}
@@ -216,9 +214,7 @@ int main(int argc, char* argv[])
 			hostname[strlen(optarg)] = '\0';
 		    break;	        
 		  case '?':
-		      printf (stderr,
-		               "Unknown option character `\\x%x'.\n",
-		               optopt);
+		      printf ("Unknown option character \n");
 		    return 1;
 		  default:
 		    abort ();
@@ -228,8 +224,6 @@ int main(int argc, char* argv[])
 
 
 
-	for (index = optind; index < argc; index++)
-		printf ("Non-option argument % index: %d\n", argv[index],index);
 
 	// printf("port %d\nmode %d\nhostname %s\n",port, mode, hostname);
 	
@@ -256,7 +250,7 @@ int main(int argc, char* argv[])
 		 if(data_size>-1){
 		// printf("message received %s \n",buffer);
 			file_len = validate_hello_message(s);
-			packets = ceil(file_len/CHUNK_SIZE) + 1;
+			packets =  ceil(file_len/CHUNK_SIZE);
 		// printf("size of file: %d , packets: %d \n",file_len,packets);
 			if(file_len != 0){
 				break;

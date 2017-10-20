@@ -17,6 +17,7 @@ char fileName[50];
  struct sockaddr_in serveraddr;
  int serverlen;
 
+
 int send_file_chunk(int fd, char buffer[], uint32_t size, uint32_t seqno) {
 	file_packet_t pac;
 	// pac.data = buffer;
@@ -57,13 +58,11 @@ int send_hello_msg(int fd, int mode) {
 	memcpy((void*)data, (void*)&ack, sizeof(initial_ack_packet_t)); // "Serialize"
 
 	// if (send(fd, &ack, sizeof(initial_ack_packet_t), 0) == -1) {
-	// printf("heree : %d\n",fd);
 	if ( sendto(fd, &ack, sizeof(initial_ack_packet_t), 0, 
 	       (struct sockaddr *) &serveraddr, serverlen) == -1) {
 	 perror("ACK start communiocation  Error");
 	 return 0 ;
 	}
-	// printf("here2\n");
 	return 1;
 		
 }
@@ -76,13 +75,13 @@ int connect_server(char *host_name, int port) {
 	// fd = socket(AF_INET, SOCK_STREAM, 0);//TCP/IP network and TCP protocol.
 	fd = socket(AF_INET, SOCK_DGRAM, 0);//UDP
     struct timeval timeout;      
-    timeout.tv_sec = 0;
-    // timeout.tv_sec = TIMEOUT_SECS;
+    // timeout.tv_sec = 0;
+    timeout.tv_sec = TIMEOUT_SECS;
     timeout.tv_usec = TIMEOUT_U_SECS;
 
     if (setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
                 sizeof(timeout)) < 0)
-        error("setsockopt failed\n");
+        perror("setsockopt failed\n");
 	if(fd == -1)
 	{
 	  printf("Error opening socket\n");
@@ -115,7 +114,6 @@ void * wait_ack_go_back_n(void *t_data)
 	pthread_data_t *thread_data = (pthread_data_t*) t_data;
 	char buffer[MAX_BUFFER];
 	int fd = thread_data->fd;
-
 	while(thread_data->transfer_complete == 0){
 		file_ack_packet_t s;
 		int data_size = recvfrom(fd, &s, sizeof(file_ack_packet_t), 0,
@@ -123,29 +121,24 @@ void * wait_ack_go_back_n(void *t_data)
 
 		// int data_size = recv(fd, buffer, MAX_BUFFER, 0);
 		 if (errno == EWOULDBLOCK) {
-		 	// printf("timeout wait_ack_go_back_n \n");
 		 	thread_data->timeout = 1;
 		 	errno = 0;
 		 	continue;
-		 }
-		if(thread_data->fd == 0){
-			return;
-		} 
+		 }	
 		if(data_size == -1){
-			printf("recv error %d", errno);
+			// printf("recv error %d", errno);
 			// break;
 		}		 
 		// memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
-		if(s.seqno >= thread_data->total_packets){
+		if(s.seqno >= thread_data->total_packets){// when receiver requests for one more than actually available, terminate
 			printf("Completed transfer of file\n");
 			thread_data->transfer_complete = 1;
 			break;
 		}	
-
 		if(s.seqno > thread_data->sb){
+			// printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
 			thread_data->sm = (thread_data->sm - thread_data->sb) + s.seqno;
 			thread_data->sb = s.seqno;
-			// printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
 		}
 	}
 }
@@ -182,9 +175,8 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	thread_data->n_bytes = 0;
 	thread_data->n = window_size;
 	thread_data->sb = 0;
-	// printf("len of file: %d \n", size);
-	// printf("ceil(size/CHUNK_SIZE): %d \n", ceil(size/CHUNK_SIZE));
-	thread_data->total_packets = ceil(size/CHUNK_SIZE) + 1;
+	thread_data->total_packets =  ceil(size/CHUNK_SIZE);
+	
 	// printf("thread_data->total_packets: %d, size: %d",thread_data->total_packets,size);
 	// printf("thread_data->total_packets:  size:");
 	thread_data->sm = n;
@@ -193,7 +185,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	thread_data->timeout = 0;
 	thread_data->fd = fd;
 	size_t bytesRead =  0;
-	pthread_t acknowledgement_receiver_thread = NULL;
+	pthread_t acknowledgement_receiver_thread;
 	pthread_create(&acknowledgement_receiver_thread, NULL, wait_ack_go_back_n, (void *) thread_data);
 	
 	uint32_t seqno = 0;
@@ -205,16 +197,15 @@ int start_file_share_go_back_n(int fd, int window_size) {
 		while(seqno < sm){
 			bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
 			file_chunk[bytesRead] = '\0';
-			// printf("go_back_n Read %d bytes from file, content is: %s, seqno : %d, i: %d, sm: %d\n  ",bytesRead, file_chunk,seqno, i , sm);
+			// printf("go_back_n Read %lu bytes from file, content is: %s, seqno : %d, i: %d, sm: %d\n  ",bytesRead, file_chunk,seqno, i , sm);
+			
 			if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 				seqno++;
 			}			
 		}
 		//the following loop will either wait for window to move or for a timeout
 		while(thread_data->sm == sm ){
-			// printf("waiting for timeout or window move\n");
 			if(thread_data->timeout){
-				// printf("timeout sending again \n");
 				seqno = thread_data->sb;
 				thread_data->timeout = 0;
 				break;
@@ -241,7 +232,8 @@ int start_file_share_stop_and_wait(int fd) {
 	}
 	unsigned char file_chunk[CHUNK_SIZE];
 	fseek(fp, 0L, SEEK_END);
-	long size = ftell(fp);
+	uint32_t size = ftell(fp);
+	int total_packets = ceil(size/CHUNK_SIZE);
 	fseek(fp, 0L, SEEK_SET);
 	uint32_t seqno = 0;
 	size_t bytesRead =  0;
@@ -249,14 +241,13 @@ int start_file_share_stop_and_wait(int fd) {
 	{
 		fseek( fp, CHUNK_SIZE * seqno, SEEK_SET );
 		bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
-		// printf("bytesRead: %d\n",bytesRead);
 		file_chunk[bytesRead] = '\0';
 		if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 			char buffer[MAX_BUFFER];
 			//todo timeout
 			file_ack_packet_t s;
 			int data_size = recvfrom(fd, &s, sizeof(file_ack_packet_t), 0,
-		 			(struct sockaddr *) &serveraddr, &serverlen);			
+		 			(struct sockaddr *) &serveraddr, &serverlen);		
 			// int data_size = recv(fd, buffer, MAX_BUFFER, 0);
 			 if (errno == EWOULDBLOCK) {
 			 	errno = 0;
@@ -265,7 +256,7 @@ int start_file_share_stop_and_wait(int fd) {
 			
 			// memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
 			if (s.seqno == seqno + 1){//receiver received last packet
-				// printf("Receiver received packet %d and is requesting next one \n",seqno);
+				// printf("Receiver received packet %d and is requesting next one , total packets : %d\n",seqno,total_packets);
 				seqno++;
 			}
 			else{
@@ -274,8 +265,13 @@ int start_file_share_stop_and_wait(int fd) {
 
 				continue;
 			}
+			if(seqno >= total_packets){// when receiver requests for one more than actually available, terminate
+				printf("Completed transfer of file stop and wait\n");
+				// printf("total_packets: %d, s.seqno:%d\n",total_packets,s.seqno);
+				break;
+			}
 		}
-	} while (bytesRead > 0);
+	} while (1);
 
 	fclose (fp);
 	return size;	
@@ -328,9 +324,7 @@ int main(int argc, char* argv[]) {
 			fileName[strlen(fileName)] = '\0';
 		    break;	   
 		  case '?':
-		      printf (stderr,
-		               "Unknown option character ",
-		               optopt);
+		      printf ("Unknown option character \n");
 		    return 1;
 		  default:
 		    abort ();

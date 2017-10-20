@@ -2,10 +2,10 @@
 #define PACKETHEADERS_H
 
 #define MAX_BUFFER 256
-#define CHUNK_SIZE 100
+#define CHUNK_SIZE 50
 #define PORT 15125
 #define TIMEOUT_SECS 1
-#define TIMEOUT_U_SECS 500
+#define TIMEOUT_U_SECS 500000
 #define TIMEOUT_U_SECS_L 100
 #include <pthread.h>
 typedef struct file_ack_packet {
@@ -49,7 +49,7 @@ typedef struct {
     int sb;
     int packet_to_send;
     int transfer_complete;
-    uint32_t total_packets;
+    int total_packets;
     int timeout;
 } pthread_data_t;
 

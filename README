@@ -15,5 +15,5 @@ start -m 5 -h localhost
 
 
 
-
-
+./sender -m 5 -h "ushanka.ccs.neu.edu" -f "a.txt"
+./receiver -m 5 -h localhost

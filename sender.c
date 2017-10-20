@@ -16,30 +16,8 @@
 char fileName[50];
  struct sockaddr_in serveraddr;
  int serverlen;
-unsigned char * serialize_int(unsigned char *buffer, int value)
-{
-  /* Write big-endian int value into buffer; assumes 32-bit int and 8-bit char. */
-  buffer[0] = value >> 24;
-  buffer[1] = value >> 16;
-  buffer[2] = value >> 8;
-  buffer[3] = value;
-  return buffer + 4;
-}
 
-unsigned char * serialize_char(unsigned char *buffer, char value)
-{
-  buffer[0] = value;
-  return buffer + 1;
-}
-
-unsigned char * serialize_temp(unsigned char *buffer, struct initial_ack_packet *value)
-{
-  buffer = serialize_int(buffer, value->magic_number);
-  buffer = serialize_int(buffer, value->file_len);
-  return buffer;
-}
-
-int send_file_chunk(int fd, char buffer[], int size, int seqno) {
+int send_file_chunk(int fd, char buffer[], uint32_t size, uint32_t seqno) {
 	file_packet_t pac;
 	// pac.data = buffer;
 	strcpy(pac.data, buffer);
@@ -65,7 +43,7 @@ int send_hello_msg(int fd, int mode) {
 			return 0;
 		}
 	fseek(fp, 0L, SEEK_END);
-	long size = ftell(fp);
+	uint32_t size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
 	fclose (fp);
 
@@ -181,7 +159,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	}
 	unsigned char file_chunk[CHUNK_SIZE];
 	fseek(fp, 0L, SEEK_END);
-	long size = ftell(fp);
+	uint32_t size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
 	int i = 0;
 	/*
@@ -218,7 +196,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	pthread_t acknowledgement_receiver_thread = NULL;
 	pthread_create(&acknowledgement_receiver_thread, NULL, wait_ack_go_back_n, (void *) thread_data);
 	
-	long seqno = 0;
+	uint32_t seqno = 0;
 
 	while(!thread_data->transfer_complete){
 		int sb = thread_data->sb, sm = thread_data->sm;//, seqno = thread_data->packet_to_send;
@@ -265,7 +243,7 @@ int start_file_share_stop_and_wait(int fd) {
 	fseek(fp, 0L, SEEK_END);
 	long size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
-	long seqno = 0;
+	uint32_t seqno = 0;
 	size_t bytesRead =  0;
 	do
 	{

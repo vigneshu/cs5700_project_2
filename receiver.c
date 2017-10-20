@@ -19,7 +19,7 @@ static volatile int signal_flag = 1;
 int sockfd;
  struct sockaddr_in clientaddr;
  int clientlen;
- long packets;
+ uint32_t packets;
 char hostname[50], NUID[20], flag[50], file_name[30];
 void intHandler(int dummy) {
     signal_flag = 0;
@@ -28,7 +28,7 @@ void intHandler(int dummy) {
 }
 
 //sends acknowledgement asking for sequence number specified
-int send_acknowledgement(int clientfd, long seqno) {
+int send_acknowledgement(int clientfd, uint32_t seqno) {
 	char ackData[8];
 	file_ack_packet_t file_ack;
 	file_ack.seqno = seqno;
@@ -46,7 +46,7 @@ if 	( sendto(clientfd, &file_ack, sizeof(file_ack_packet_t), 0,
 
 char* build_file_go_back_n(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
-	long seqno = 0;
+	uint32_t seqno = 0;
 	
 	file_packet_t f;
 	// while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
@@ -98,7 +98,7 @@ char* build_file_go_back_n(int clientfd, char* file){
 }
 char* build_file_stop_and_wait(int clientfd, char* file){
 	char buffer[MAX_BUFFER];
-	long seqno = 0;
+	uint32_t seqno = 0;
 	file_packet_t f;
 	while(recvfrom(clientfd, &f, sizeof(file_packet_t), 0, (struct sockaddr *) &clientaddr, &clientlen) > 0){
 	// while(recv(clientfd, buffer, MAX_BUFFER, 0) > 0){
@@ -138,17 +138,17 @@ char* build_file_stop_and_wait(int clientfd, char* file){
     
 }
 // validates the first message received from client to see if it is a hwllo message
-int validate_hello_message(initial_ack_packet_t s){
+uint32_t validate_hello_message(initial_ack_packet_t s){
 	// initial_ack_packet_t s;
 	
 	// memcpy(&s, buffer, sizeof(initial_ack_packet_t)); // "Deserialize"	
 	int magic_number = s.magic_number;
-	long file_len = s.file_len;
+	uint32_t file_len = s.file_len;
 		// printf("s.file_name %s",s.file_name);
 	memcpy(file_name, s.file_name, strlen(s.file_name));
 	if(mode !=  s.mode){
 		printf("mode of sender doesnt match receiver");
-		return -1;
+		return 0;
 	}
 	// printf("magic number : %d, len: %d file_name: %sfileName", magic_number, file_len, file_name);
 	return file_len;
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
 	srand(time(NULL));  
     signal(SIGINT, intHandler);
 	int clientfd;
-	long file_len;
+	uint32_t file_len;
 	sockfd = create_socket(port);
     while(1){
 		clientfd = start_listening(sockfd);
@@ -257,8 +257,8 @@ int main(int argc, char* argv[])
 		// printf("message received %s \n",buffer);
 			file_len = validate_hello_message(s);
 			packets = ceil(file_len/CHUNK_SIZE) + 1;
-		printf("size of file: %d , packets: %d \n",file_len,packets);
-			if(file_len != -1){
+		// printf("size of file: %d , packets: %d \n",file_len,packets);
+			if(file_len != 0){
 				break;
 			}		
 		}

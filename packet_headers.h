@@ -49,7 +49,7 @@ typedef struct {
     int sb;
     int packet_to_send;
     int transfer_complete;
-    long total_packets;
+    uint32_t total_packets;
     int timeout;
 } pthread_data_t;
 

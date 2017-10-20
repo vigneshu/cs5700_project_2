@@ -65,7 +65,7 @@ int send_hello_msg(int fd, int mode) {
 			return 0;
 		}
 	fseek(fp, 0L, SEEK_END);
-	uint16_t size = ftell(fp);
+	long size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
 	fclose (fp);
 
@@ -79,13 +79,13 @@ int send_hello_msg(int fd, int mode) {
 	memcpy((void*)data, (void*)&ack, sizeof(initial_ack_packet_t)); // "Serialize"
 
 	// if (send(fd, &ack, sizeof(initial_ack_packet_t), 0) == -1) {
-	printf("heree : %d\n",fd);
+	// printf("heree : %d\n",fd);
 	if ( sendto(fd, &ack, sizeof(initial_ack_packet_t), 0, 
 	       (struct sockaddr *) &serveraddr, serverlen) == -1) {
 	 perror("ACK start communiocation  Error");
 	 return 0 ;
 	}
-	printf("here2\n");
+	// printf("here2\n");
 	return 1;
 		
 }
@@ -145,7 +145,7 @@ void * wait_ack_go_back_n(void *t_data)
 
 		// int data_size = recv(fd, buffer, MAX_BUFFER, 0);
 		 if (errno == EWOULDBLOCK) {
-		 	printf("timeout wait_ack_go_back_n \n");
+		 	// printf("timeout wait_ack_go_back_n \n");
 		 	thread_data->timeout = 1;
 		 	errno = 0;
 		 	continue;
@@ -167,7 +167,7 @@ void * wait_ack_go_back_n(void *t_data)
 		if(s.seqno > thread_data->sb){
 			thread_data->sm = (thread_data->sm - thread_data->sb) + s.seqno;
 			thread_data->sb = s.seqno;
-			printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
+			// printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
 		}
 	}
 }
@@ -205,7 +205,10 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	thread_data->n = window_size;
 	thread_data->sb = 0;
 	// printf("len of file: %d \n", size);
+	// printf("ceil(size/CHUNK_SIZE): %d \n", ceil(size/CHUNK_SIZE));
 	thread_data->total_packets = ceil(size/CHUNK_SIZE) + 1;
+	// printf("thread_data->total_packets: %d, size: %d",thread_data->total_packets,size);
+	// printf("thread_data->total_packets:  size:");
 	thread_data->sm = n;
 	thread_data->packet_to_send = 0;
 	thread_data->transfer_complete = 0;
@@ -215,7 +218,7 @@ int start_file_share_go_back_n(int fd, int window_size) {
 	pthread_t acknowledgement_receiver_thread = NULL;
 	pthread_create(&acknowledgement_receiver_thread, NULL, wait_ack_go_back_n, (void *) thread_data);
 	
-	int seqno = 0;
+	long seqno = 0;
 
 	while(!thread_data->transfer_complete){
 		int sb = thread_data->sb, sm = thread_data->sm;//, seqno = thread_data->packet_to_send;
@@ -224,16 +227,16 @@ int start_file_share_go_back_n(int fd, int window_size) {
 		while(seqno < sm){
 			bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
 			file_chunk[bytesRead] = '\0';
-			printf("go_back_n Read %d bytes from file, content is: %s, seqno : %d, i: %d, sm: %d\n  ",bytesRead, file_chunk,seqno, i , sm);
+			// printf("go_back_n Read %d bytes from file, content is: %s, seqno : %d, i: %d, sm: %d\n  ",bytesRead, file_chunk,seqno, i , sm);
 			if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 				seqno++;
 			}			
 		}
 		//the following loop will either wait for window to move or for a timeout
 		while(thread_data->sm == sm ){
-			printf("waiting for timeout or window move\n");
+			// printf("waiting for timeout or window move\n");
 			if(thread_data->timeout){
-				printf("timeout sending again \n");
+				// printf("timeout sending again \n");
 				seqno = thread_data->sb;
 				thread_data->timeout = 0;
 				break;
@@ -262,13 +265,13 @@ int start_file_share_stop_and_wait(int fd) {
 	fseek(fp, 0L, SEEK_END);
 	long size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
-	int seqno = 0;
+	long seqno = 0;
 	size_t bytesRead =  0;
 	do
 	{
 		fseek( fp, CHUNK_SIZE * seqno, SEEK_SET );
 		bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
-		printf("bytesRead: %d\n",bytesRead);
+		// printf("bytesRead: %d\n",bytesRead);
 		file_chunk[bytesRead] = '\0';
 		if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
 			char buffer[MAX_BUFFER];
@@ -284,11 +287,11 @@ int start_file_share_stop_and_wait(int fd) {
 			
 			// memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
 			if (s.seqno == seqno + 1){//receiver received last packet
-				printf("Receiver received packet %d and is requesting next one \n",seqno);
+				// printf("Receiver received packet %d and is requesting next one \n",seqno);
 				seqno++;
 			}
 			else{
-				printf("Sending again. Receiver requesting seq number %d \n",s.seqno);
+				// printf("Sending again. Receiver requesting seq number %d \n",s.seqno);
 				seqno = s.seqno;
 
 				continue;

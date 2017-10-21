@@ -44,7 +44,7 @@ if 	( sendto(clientfd, &file_ack, sizeof(file_ack_packet_t), 0,
 }
 
 
-char* build_file_go_back_n(int clientfd, char* file){
+void build_file_go_back_n(int clientfd, FILE* fp1){
 	char buffer[MAX_BUFFER];
 	uint32_t seqno = 0;
 	
@@ -54,21 +54,9 @@ char* build_file_go_back_n(int clientfd, char* file){
 		// memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
 
 		if(seqno == f.seqno){
-			// int chksum = f.chksum;
-			// uint8_t calculated = chksum8(f.data, f.len);			
-			// if(calculated != chksum)
-			// {
-			// 	// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
-			// 	printf("go_back_n chksums dont match  \n");
-			// }	
-			// else{	
-			// 	strncat (file, f.data, f.len);			
-			// 	seqno++;
-			// }
-			strncat (file, f.data, f.len);			
-				seqno++;
-
-
+			// printf();	
+			fprintf(fp1, "%s", f.data);		
+			seqno++;
 		}
 		else{
 			// printf("go_back_n Droppping packet got seq no %d expected %d end \n", f.seqno,seqno);	
@@ -77,24 +65,24 @@ char* build_file_go_back_n(int clientfd, char* file){
 		uint8_t calculated = chksum8(f.data, f.len);			
 		if(calculated != chksum)
 		{
-			// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+			printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
 			// printf("go_back_n chksums dont match  \n");
-						return NULL;
+						continue;
+						// return NULL;
 		}	
 	
 		
 		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
 	
-		// printf("requesting seqno: %d, received: %d , data: %s",seqno,f.seqno, f.data);
+		// printf("requesting seqno: %d, received: %d , data: %s\n",seqno,f.seqno, f.data);
 		int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
 		if(seqno >= packets){
 			// printf("download complete seqno%d: packets:%d\n", seqno,packets);
 			break;
 		}
 	}
-	return file;
 }
-char* build_file_stop_and_wait(int clientfd, char* file){
+void build_file_stop_and_wait(int clientfd, FILE* fp1){
 	char buffer[MAX_BUFFER];
 	uint32_t seqno = 0;
 	file_packet_t f;
@@ -112,11 +100,12 @@ char* build_file_stop_and_wait(int clientfd, char* file){
 			uint8_t calculated = chksum8(f.data, f.len);			
 			if(calculated != chksum)
 			{
-				// printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+				printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
 				// printf("go_back_n chksums dont match  \n");
+				continue;
 			}			
 			else{
-				strncat (file, f.data, f.len);			
+				fprintf(fp1, "%s", f.data);		
 				seqno++;
 				int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);			
 			}
@@ -130,10 +119,7 @@ char* build_file_stop_and_wait(int clientfd, char* file){
 			break;
 		}
 
-	}
-	return file;
-
-    
+	} 
 }
 // validates the first message received from client to see if it is a hwllo message
 uint32_t validate_hello_message(initial_ack_packet_t s){
@@ -145,7 +131,8 @@ uint32_t validate_hello_message(initial_ack_packet_t s){
 		// printf("s.file_name %s",s.file_name);
 	memcpy(file_name, s.file_name, strlen(s.file_name));
 	if(mode !=  s.mode){
-		printf("mode of sender doesnt match receiver");
+		printf("mode of sender doesnt match receiver\n");
+		exit(0);
 		return 0;
 	}
 	// printf("magic number : %d, len: %d file_name: %sfileName", magic_number, file_len, file_name);
@@ -261,23 +248,25 @@ int main(int argc, char* argv[])
 
 	if(file_len){
 		if(send_acknowledgement(clientfd, 0)){
-			char* file = (char*) malloc(file_len);
 			printf("Please wait. File downloading...\n");
+			
+			char folder[100] = "./output/";
+			int pid = getpid();
+			char* fname = strtok(file_name, ".");
+			char* extension = strtok(NULL, ".");
+			char buffer[100];
+			snprintf(buffer, 100,"%s%s%d%s%s",folder, fname, getpid(), ".", extension);
+			FILE* fp1 = fopen(buffer,  "wb");
 			if(mode == 1){
-				build_file_stop_and_wait(clientfd, file);
+				build_file_stop_and_wait(clientfd, fp1);
 			}
 			else{
-				build_file_go_back_n(clientfd, file);
+				build_file_go_back_n(clientfd, fp1);
 			}
-			char folder[100] = "./output/";
-			// char* opFileName = strcat("./output/", file_name);
-			char* opFileName = strcat(folder, file_name);
-			// char* opFileName = "./output/a.txt";
-			// char* opFileName = strcat(strtok(file_name, "."), "_output.txt");
-			// printf("output file name ");
-			// printf("\noutput file name %s\n ", opFileName);
-			FILE* fp1 = fopen(opFileName,  "wb");
-			fprintf(fp1, "%s", file);
+			printf("\noutput file name %s\n ", buffer);
+			
+			// fprintf(fp1, "%s", file);
+			fclose(fp1);
 			printf("File download complete... The file should be available under the output folder\n");
 		}
 	}

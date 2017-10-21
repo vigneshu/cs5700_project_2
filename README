@@ -1,19 +1,152 @@
-./receiver -m 5 -h localhost
+How to Run
 
+
+I have two files "a.txt" and "b.txt"
+"b.txt" is a large file (6.5 MB)
+PLEASE RUN THE RECEIVER FIRST
+1) GO BACK N
+./receiver -m 5 -h localhost
+./sender -m 5 -h "ushanka.ccs.neu.edu" -f "b.txt"
+(OR)
 ./sender -m 5 -h localhost -f "a.txt"
 
-
-start -m 5 -h localhost -f "a.txt"
-start -m 5 -h localhost
-
-
-
-
+2) STOP AND WAIT
+./receiver -m 1 -h localhost
+./sender -m 1 -h "ushanka.ccs.neu.edu" -f "b.txt"
+(OR)
+./sender -m 1 -h localhost -f "a.txt"
 
 
 
 
+Approach
+
+Step By step process
 
 
-./sender -m 5 -h "ushanka.ccs.neu.edu" -f "a.txt"
-./receiver -m 5 -h localhost
+
+1) Sender
+
+i)Design details
+CHUNK_SIZE 150 bytes
+MAX_RETRY_COUNT 100
+TIMEOUT_SECS 1.5 seconds (3RTT)
+
+
+Initial hello message(INIT)
+typedef struct initial_ack_packet {
+	 int magic_number; //senderId
+	uint32_t file_len;
+	char file_name[30];
+	uint8_t mode;
+
+}initial_ack_packet_t;
+
+
+file chunk(DATA)
+typedef struct file_packet {
+	uint16_t chksum; 
+	uint32_t len;
+	uint32_t seqno;
+	char data[CHUNK_SIZE]; 
+}file_packet_t;
+
+
+file acknowledgement packet (ACK)
+typedef struct file_ack_packet {
+	uint32_t seqno;
+
+}file_ack_packet_t;
+
+
+
+
+
+
+My header
+
+
+ii)Algorithm
+> I have set a timeout of 3RTT while creating the UDP of 1.5 seconds. I pinged my host using 'ping' command to nor=te f=down the RTT and it was 0.5 seconds for 64 bytes
+> "connect_server" function sets up socket receiver address
+> Next I call start_communication, which essentially sends hello message to client to initiate communication. The function also waits for receiver to respond, validates the message and returns if success
+> Next Depending on the mode I call  "start_file_share_stop_and_wait" or "start_file_share_go_back_n".
+	a) Stop and wait (start_file_share_stop_and_wait)
+		Steps
+		> Open file
+		i) seek to CHUNK_SIZE * seqno
+		ii) read chunk size and send it to receiver
+		iii) wait for ack from receiver
+		iv) if ack received within timeout, set seqno to the seqno requested by receiver in ack message. Do step (i) again
+		v) if timeout, do not change seq number. Do step (i) again. (Basically we are resending the packet). If the sender sends the same window over the specified retry 				count, then break out
+	b) Go back n (start_file_share_go_back_n)
+		Algorithm (Implemented one provided in wikipedia link)
+		N  = window size
+		Rn = request number
+		Sn = sequence number
+		Sb = sequence base
+		Sm = sequence max
+
+		Receiver:
+		Rn = 0
+		Do the following forever:
+		If the packet received = Rn and the packet is error free
+			Accept the packet and send it to a higher layer
+			Rn = Rn + 1
+		Else
+			Refuse packet
+		Send a Request for Rn
+		
+		Sender:
+		Sb = 0
+		Sm = N + 1
+		Repeat the following steps forever:
+		1. If you receive a request number where Rn > Sb 
+			Sm = (Sm - Sb) + Rn
+			Sb = Rn
+		2.  If no packet is in transmission, 
+			Transmit a packet where Sb <= Sn <= Sm.  
+			Packets are transmitted in order.
+		Implementation Details
+		i)  I use two threads, 
+			a) The main thread sends packet in the current window. After sending all elements in the window, it either waits for the window to be moved by other thread 				OR after timeout sends all elements in the window again 
+			b) The other thread, listens for acknowledgement from receiver. Once it receives acknowledgement, it moves the window using the above mentioned algorithm'
+		ii) Retry count
+			If the sender sends the same window over the specified retry count, break out
+	
+
+
+2) Receiver
+i) create_socket creates UDP socket
+ii) waits for hello message. validates hello message and sends acknowledgement requesting for sequence number 0. calls "build_file_stop_and_wait" or "build_file_go_back_n"
+a)Stop and wait
+	i) build_file_stop_and_wait
+		a) wait for packet from sender
+		b) if packet is what receiver is expecting, append to character array and send acknowledgement, else drop packet andsend acknowledgement requesting for packet needed
+		c) keep repeating step (b) until desired file length is reached
+b) go back n
+	i) wait for packet from sender
+	ii) comapre checksums. check if packet is expected packet. If yes then append to file and send acknowledgement. If wrong send acknowledgement with the packet it is expecting
+	iii) do step i) and ii) until file size is reached
+
+
+Problems
+The major problems I had was with the timeouts. I was always testing with localhost and it was fast. When I tested in CCIS the ping times were different and I had to change it to higher value.
+I had many problems while building the logic for go back n, especially moving windows. Since I used threads I had to wait for the other thread to finish its work before starting to resend packet again
+
+
+Testing
+1)Stop and wait
+i)TO test timeouts and missing packets, I manually commented the send back acknowldgement code from receiver to see if sender sends back the packet again and used prints to verify
+ii)I also tested with larger text files (6.5 MB) where missing out packets could actually happen
+iii)also checked if the retry count is greater than 50 then the sender closes automatically
+iv)Tested  starting sender and receiver in different modes
+
+2) Go back N
+i) tried different window sizes. dropped packets with a random number and printed the seq number of dropped packet. printed all the window variables for sb, sm and seq no. cross verified these numbers match up for different acks dropped
+ii) tried sending a big file and it was sent successfully
+
+
+
+
+

@@ -15,7 +15,7 @@
 #include <pthread.h>
 char fileName[50];
  struct sockaddr_in serveraddr;
- int serverlen;
+ int serverlen, retry_count = 0;
 
 
 int send_file_chunk(int fd, char buffer[], uint32_t size, uint32_t seqno) {
@@ -139,6 +139,8 @@ void * wait_ack_go_back_n(void *t_data)
 			// printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
 			thread_data->sm = (thread_data->sm - thread_data->sb) + s.seqno;
 			thread_data->sb = s.seqno;
+			retry_count = 0;
+
 		}
 	}
 }
@@ -206,8 +208,10 @@ int start_file_share_go_back_n(int fd, int window_size) {
 		//the following loop will either wait for window to move or for a timeout
 		while(thread_data->sm == sm ){
 			if(thread_data->timeout){
+				printf("timout go back n\n");
 				seqno = thread_data->sb;
 				thread_data->timeout = 0;
+				retry_count++;
 				break;
 			}
 			if (thread_data->transfer_complete){
@@ -215,6 +219,11 @@ int start_file_share_go_back_n(int fd, int window_size) {
 			}
 			usleep(100);
 
+		}
+		if(retry_count > MAX_RETRY_COUNT){
+				printf("receiver crashed. Stopping sender go back n\n");
+				exit(1);
+				break;
 		}
 		
 	}
@@ -251,6 +260,12 @@ int start_file_share_stop_and_wait(int fd) {
 			// int data_size = recv(fd, buffer, MAX_BUFFER, 0);
 			 if (errno == EWOULDBLOCK) {
 			 	errno = 0;
+			 	retry_count++;
+ 				if(retry_count > MAX_RETRY_COUNT){
+					printf("receiver crashed. Stopping sender stop and wait \n");
+					exit(1);
+					break;
+				}
 			 	continue;
 			 }
 			
@@ -258,13 +273,14 @@ int start_file_share_stop_and_wait(int fd) {
 			if (s.seqno == seqno + 1){//receiver received last packet
 				// printf("Receiver received packet %d and is requesting next one , total packets : %d\n",seqno,total_packets);
 				seqno++;
+				retry_count = 0;
 			}
 			else{
-				// printf("Sending again. Receiver requesting seq number %d \n",s.seqno);
 				seqno = s.seqno;
 
 				continue;
 			}
+
 			if(seqno >= total_packets){// when receiver requests for one more than actually available, terminate
 				printf("Completed transfer of file stop and wait\n");
 				// printf("total_packets: %d, s.seqno:%d\n",total_packets,s.seqno);

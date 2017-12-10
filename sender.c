@@ -232,7 +232,8 @@ int start_file_share_sliding_window(int fd, int window_size) {
 		}
 		//the following loop will either wait for window to move or for a timeout
 		while(thread_data->sm == sm ){
-			for (int i = 0; i < thread_data->window_size; i++){
+			int i = 0;
+			for (i = 0; i < thread_data->window_size; i++){
 				if (thread_data->timeout_block[thread_data->sb % thread_data->window_size] == 1)
 				{
 					printf ("sending block %d again because of timeout \n", thread_data->sb);

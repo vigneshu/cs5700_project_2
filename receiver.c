@@ -43,9 +43,61 @@ if 	( sendto(clientfd, &file_ack, sizeof(file_ack_packet_t), 0,
 	return 1;
 }
 
+void build_file_sliding_window(int clientfd, FILE* fp1, int window_size){
+	char buffer[MAX_BUFFER];
+	memset(&buffer, 0, MAX_BUFFER);
+	uint32_t seqno = 0;
+	// TO store chunks for receiver window
+	char buffer_file[window_size][MAX_BUFFER];
+	file_packet_t f;
+	while(recvfrom(clientfd, &f, sizeof(file_packet_t), 0, (struct sockaddr *) &clientaddr, &clientlen) > 0){
+
+		// check if packet rerceived is within window size
+		if(f.seqno >= seqno && f.seqno <= seqno + window_size || seqno == f.seqno){
+
+			int chksum = f.chksum;
+			uint8_t calculated = chksum8(f.data, f.len);			
+			if(0)
+			{
+				printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+				// printf("go_back_n chksums dont match  \n");
+				int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
+				continue;
+			}	
+			else{
+
+				// printf();	
+				//copy into  receiver window buffer
+				strcpy(buffer_file[(f.seqno-seqno) % window_size], f.data);
+				//copy from window buffer into the file
+				if (seqno == f.seqno){
+					fprintf(fp1, "%s", buffer_file[0]);		
+					// fprintf(fp1, "%s", f.data);		
+					seqno++;								
+				}
+			}			
+
+		}
+		else{
+			// printf("go_back_n Droppping packet got seq no %d expected %d end \n", f.seqno,seqno);	
+		}
+
+		
+		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
+	
+		// printf("requesting seqno: %d, received: %d , data: %s\n",seqno,f.seqno, f.data);
+		int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
+		if(seqno >= packets+1){
+			// printf("download complete seqno%d: packets:%d\n", seqno,packets);
+			break;
+		}
+	}
+}
+
 
 void build_file_go_back_n(int clientfd, FILE* fp1){
 	char buffer[MAX_BUFFER];
+	memset(&buffer, 0, MAX_BUFFER);
 	uint32_t seqno = 0;
 	
 	file_packet_t f;
@@ -54,36 +106,41 @@ void build_file_go_back_n(int clientfd, FILE* fp1){
 		// memcpy(&f, buffer, sizeof(file_packet_t)); // "Deserialize"		
 
 		if(seqno == f.seqno){
-			// printf();	
-			fprintf(fp1, "%s", f.data);		
-			seqno++;
+			int chksum = f.chksum;
+			uint8_t calculated = chksum8(f.data, f.len);			
+			if(0)
+			{
+				printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
+				// printf("go_back_n chksums dont match  \n");
+				int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
+				continue;
+			}	
+			else{
+				// printf();	
+				fprintf(fp1, "%s", f.data);		
+				seqno++;			
+			}			
+
 		}
 		else{
 			// printf("go_back_n Droppping packet got seq no %d expected %d end \n", f.seqno,seqno);	
 		}
-		int chksum = f.chksum;
-		uint8_t calculated = chksum8(f.data, f.len);			
-		if(calculated != chksum)
-		{
-			printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
-			// printf("go_back_n chksums dont match  \n");
-						continue;
-						// return NULL;
-		}	
-	
+
 		
 		// printf("go_back_n chksums calculated at receiver %d, sender: %d \n", calculated, chksum);
 	
 		// printf("requesting seqno: %d, received: %d , data: %s\n",seqno,f.seqno, f.data);
 		int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);	
-		if(seqno >= packets){
+		if(seqno >= packets+1){
 			// printf("download complete seqno%d: packets:%d\n", seqno,packets);
 			break;
 		}
 	}
 }
+
 void build_file_stop_and_wait(int clientfd, FILE* fp1){
 	char buffer[MAX_BUFFER];
+	memset(&buffer, 0, MAX_BUFFER);
 	uint32_t seqno = 0;
 	file_packet_t f;
 	while(recvfrom(clientfd, &f, sizeof(file_packet_t), 0, (struct sockaddr *) &clientaddr, &clientlen) > 0){
@@ -98,10 +155,11 @@ void build_file_stop_and_wait(int clientfd, FILE* fp1){
 		if(seqno == f.seqno){
 			int chksum = f.chksum;
 			uint8_t calculated = chksum8(f.data, f.len);			
-			if(calculated != chksum)
+			if(0)
 			{
 				printf("chksums calculated at receiver %d, sender: %d ", calculated, chksum);
 				// printf("go_back_n chksums dont match  \n");
+				int file_chunk_acknowledgement = send_acknowledgement(clientfd, seqno);		
 				continue;
 			}			
 			else{
@@ -114,7 +172,7 @@ void build_file_stop_and_wait(int clientfd, FILE* fp1){
 		else{
 			// printf("stop_and_wait Droppping packet got seq no %d before %d \n", seqno,f.seqno);	
 		}
-		if(seqno >= packets){
+		if(seqno >= packets+1){
 			printf("download complete\n");
 			break;
 		}
@@ -187,8 +245,8 @@ int main(int argc, char* argv[])
 	// printf("receiver\n");
 	opterr = 0;
 	clientlen = sizeof(clientaddr);
-
-	while ((c = getopt (argc, argv, "m:p:h:")) != -1){
+	int receiver_window = 1;
+	while ((c = getopt (argc, argv, "m:p:h:r:")) != -1){
 		switch (c){
 		  case 'm':
 		  	mode = atoi(optarg);
@@ -196,10 +254,14 @@ int main(int argc, char* argv[])
 		  case 'p':	  
 		    port = atoi(optarg);
 		    break;
+		  case 'r':	 
+		  // receiver_window = 5; 
+		    receiver_window = atoi(optarg);
+		    break;	    
 		  case 'h':
 			memcpy(hostname, optarg, strlen(optarg));
 			hostname[strlen(optarg)] = '\0';
-		    break;	        
+		    break;
 		  case '?':
 		      printf ("Unknown option character \n");
 		    return 1;
@@ -207,8 +269,10 @@ int main(int argc, char* argv[])
 		    abort ();
 		}		
 	}
-
-
+ 	if (receiver_window > 1 && receiver_window != mode){
+ 		printf("sender window and receiver window size must be same\n");
+ 		exit(0);
+ 	}
 
 
 
@@ -250,18 +314,23 @@ int main(int argc, char* argv[])
 		if(send_acknowledgement(clientfd, 0)){
 			printf("Please wait. File downloading...\n");
 			
-			char folder[100] = "./output/";
+			// char folder[100] = "./output/";
 			int pid = getpid();
 			char* fname = strtok(file_name, ".");
 			char* extension = strtok(NULL, ".");
 			char buffer[100];
-			snprintf(buffer, 100,"%s%s%d%s%s",folder, fname, getpid(), ".", extension);
+			snprintf(buffer, 100,"%s%d%s%s", fname, getpid(), ".", extension);
+			// snprintf(buffer, 100,"%s%s%d%s%s",folder, fname, getpid(), ".", extension);
 			FILE* fp1 = fopen(buffer,  "wb");
 			if(mode == 1){
 				build_file_stop_and_wait(clientfd, fp1);
 			}
-			else{
+			else if (receiver_window == 1 && mode > 1){
 				build_file_go_back_n(clientfd, fp1);
+			}
+			else if (receiver_window > 1 && mode > 1){
+				printf("\n\n\nbuilding file sliding window \n\n\n");
+				build_file_sliding_window(clientfd, fp1, receiver_window);
 			}
 			printf("\noutput file name %s\n ", buffer);
 			

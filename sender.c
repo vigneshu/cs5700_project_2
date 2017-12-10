@@ -145,6 +145,130 @@ void * wait_ack_go_back_n(void *t_data)
 	}
 }
 
+// AN array called timeout_block is used to maintain which block got a timeout
+void * wait_ack_sliding_window(void *t_data) 
+{
+
+	pthread_data_t *thread_data = (pthread_data_t*) t_data;
+	char buffer[MAX_BUFFER];
+	int fd = thread_data->fd;
+	while(thread_data->transfer_complete == 0){
+		file_ack_packet_t s;
+		int data_size = recvfrom(fd, &s, sizeof(file_ack_packet_t), 0,
+		 (struct sockaddr *) &serveraddr, &serverlen);
+
+		// int data_size = recv(fd, buffer, MAX_BUFFER, 0);
+		 if (errno == EWOULDBLOCK) {
+		 	thread_data->timeout_block[thread_data->sb % thread_data->window_size] = 1;
+		 	thread_data->timeout = 1;
+		 	errno = 0;
+		 	continue;
+		 }	
+		if(data_size == -1){
+			// printf("recv error %d", errno);
+			// break;
+		}		 
+		// memcpy(&s, buffer, sizeof(file_ack_packet_t)); // "Deserialize"	
+		if(s.seqno >= thread_data->total_packets){// when receiver requests for one more than actually available, terminate
+			printf("Completed transfer of file\n");
+			thread_data->transfer_complete = 1;
+			break;
+		}	
+		if(s.seqno > thread_data->sb){
+			// printf("moving window sm:%d, sb:%d",thread_data->sm,thread_data->sb);
+			thread_data->sm = (thread_data->sm - thread_data->sb) + s.seqno;
+			thread_data->sb = s.seqno;
+			retry_count = 0;
+
+		}
+	}
+}
+
+// The sending part for the sliding window is the similiar to go back n. 
+// The acknowledgement receive is handled differently 
+int start_file_share_sliding_window(int fd, int window_size) {
+	FILE* fp = fopen(fileName, "rb");
+	if (fp == NULL) {
+		perror("Sender- File NOT FOUND 404");
+		return -1;
+	}
+	unsigned char file_chunk[CHUNK_SIZE];
+	fseek(fp, 0L, SEEK_END);
+	uint32_t size = ftell(fp);
+	fseek(fp, 0L, SEEK_SET);
+	int i = 0;
+	int n  = window_size, sb = 0, sm = n + 1, windows_to_read = n + 1;
+	pthread_data_t *thread_data = (pthread_data_t*)malloc(sizeof(pthread_data_t));
+	thread_data->n_bytes = 0;
+	thread_data->n = window_size;
+	thread_data->sb = 0;
+	thread_data->total_packets =  ceil(size/CHUNK_SIZE);
+	
+	// printf("thread_data->total_packets: %d, size: %d",thread_data->total_packets,size);
+	// printf("thread_data->total_packets:  size:");
+	thread_data->sm = n;
+	thread_data->packet_to_send = 0;
+	thread_data->transfer_complete = 0;
+	thread_data->timeout = 0;
+	thread_data->fd = fd;
+	size_t bytesRead =  0;
+	pthread_t acknowledgement_receiver_thread;
+	pthread_create(&acknowledgement_receiver_thread, NULL, wait_ack_sliding_window, (void *) thread_data);
+	
+	uint32_t seqno = 0;
+
+	while(!thread_data->transfer_complete){
+		int sb = thread_data->sb, sm = thread_data->sm;//, seqno = thread_data->packet_to_send;
+		fseek( fp, CHUNK_SIZE * seqno, SEEK_SET );
+		
+		while(seqno < sm){
+			bytesRead = fread(file_chunk, 1, CHUNK_SIZE, fp);
+			file_chunk[bytesRead] = '\0';
+			// printf("go_back_n Read %lu bytes from file, content is: %s, seqno : %d, i: %d, sm: %d\n  ",bytesRead, file_chunk,seqno, i , sm);
+			
+			if(send_file_chunk(fd, file_chunk, bytesRead, seqno)){
+				seqno++;
+			}			
+		}
+		//the following loop will either wait for window to move or for a timeout
+		while(thread_data->sm == sm ){
+			for (int i = 0; i < thread_data->window_size; i++){
+				if (thread_data->timeout_block[thread_data->sb % thread_data->window_size] == 1)
+				{
+					printf ("sending block %d again because of timeout \n", thread_data->sb);
+					printf ("sending block again because of timeout \n");
+					thread_data->timeout_block[thread_data->sb % thread_data->window_size] = 0;
+					if(!send_file_chunk(fd, file_chunk, bytesRead, seqno)){
+						printf("sending failed");
+					}
+				}
+			} 
+			if(thread_data->timeout){
+				printf("timout go back sliding window\n");
+				seqno = thread_data->sb;
+				thread_data->timeout = 0;
+				retry_count++;
+				break;
+			}
+			if (thread_data->transfer_complete){
+				break;
+			}
+			usleep(100);
+
+		}
+		if(retry_count > MAX_RETRY_COUNT){
+				printf("receiver crashed. Stopping sender go back n\n");
+				exit(1);
+				break;
+		}
+		
+	}
+
+	fclose (fp);
+	free(thread_data);
+	pthread_join(acknowledgement_receiver_thread, NULL);
+	return size;	
+}
 
 int start_file_share_go_back_n(int fd, int window_size) {
 	FILE* fp = fopen(fileName, "rb");
@@ -322,15 +446,19 @@ int main(int argc, char* argv[]) {
 	int port = PORT, mode = 1, c;
 	char hostname[50];
 	// signal(SIGALRM, ALARMhandler);
-
-	while ((c = getopt (argc, argv, "m:p:h:f:")) != -1){
+	int receiver_window = 1;
+	int sliding_window = 0;
+	while ((c = getopt (argc, argv, "m:p:h:f:r:")) != -1){
 		switch (c){
 		  case 'm':
 		  	mode = atoi(optarg);
-		    break;
+		    break;	    
 		  case 'p':	  
 		    port = atoi(optarg);
 		    break;
+		  case 'r':	  
+		    receiver_window = atoi(optarg);
+		    break;		    
 		  case 'h':
 			memcpy(hostname, optarg, strlen(optarg));
 			hostname[strlen(optarg)] = '\0';
@@ -354,14 +482,24 @@ int main(int argc, char* argv[]) {
 	serverlen = sizeof(serveraddr);
  	int fd = connect_server(hostname, port);
  	int success = start_communication(fd, mode);
+ 	if (receiver_window > 1 && receiver_window != mode){
+ 		printf("sender window and receiver window size must be same\n");
+ 		exit(0);
+ 	}
  	if(success){
  		printf("Please wait. Sending file...\n");
- 		if(mode == 1){
- 			start_file_share_stop_and_wait(fd);
- 		}
- 		else{
+		if(mode == 1){
+			start_file_share_stop_and_wait(fd);
+		}
+		else if (receiver_window == 1){
 			start_file_share_go_back_n(fd, mode);
- 		}
+		}
+		else if (receiver_window > 1){
+			printf("\n\nsending file sliding window \n\n\n\n");
+			start_file_share_sliding_window(fd, mode);
+			
+		}
+
  	}
  	close(fd);
  	return 0;

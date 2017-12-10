@@ -52,6 +52,7 @@ typedef struct {
     int transfer_complete;
     int total_packets;
     int timeout;
+    int timeout_block[50];
 } pthread_data_t;
 
 void print_message(const char* buf, int buf_len)

@@ -150,3 +150,11 @@ ii) tried sending a big file and it was sent successfully
 
 
 
+
+
+
+*****UPDATE*****
+To test sliding window give "-r" parameter for receiver window. The receiver window should be equal to sender window
+3) sliding window
+./receiver -m 5 -r 5 -h localhost
+./sender -m 5 -r 5 "ushanka.ccs.neu.edu" -f "b.txt"
